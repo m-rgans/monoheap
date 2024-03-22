@@ -20,6 +20,13 @@ impl<T> MonoHeap<T> {
 
     // public =====
 
+    pub fn iter(&self) -> MonoHeapIterator<T> {
+        return MonoHeapIterator::<T> {
+            heap:self,
+            idx:0,
+        };
+    }
+
     pub fn new() -> Self {
         return Self {
             block:Vec::new(),
@@ -102,8 +109,30 @@ impl<T> MonoHeap<T> {
     }
 }
 
+pub struct MonoHeapIterator<'a,T> {
+    heap:&'a MonoHeap<T>,
+    idx:usize,
+}
+
+impl<'a,T:Clone> Iterator for MonoHeapIterator<'a,T> {
+    type Item =&'a T;
+    fn next(&mut self) -> Option<Self::Item> {
+        #[cfg(test)]
+        println!("Iteration {}", self.idx);
+        while self.idx < self.heap.block.len() {
+            if let Some(v) = &self.heap.block[self.idx].data {
+                self.idx += 1;
+                return Some(v);
+            }
+            self.idx += 1;
+        }
+        return None;
+    }
+}
 
 mod test {
+    use std::{collections::HashMap, hash::Hash};
+
     use crate::MonoHeap;
 
     #[test]
@@ -131,4 +160,35 @@ mod test {
         assert_eq!(h.get(t2), None);
         assert_eq!(*h.get(t3).unwrap(), 12);
     }
+
+    #[test]
+    fn iterator_test() {
+        let mut h = MonoHeap::<i32>::new();
+        h.insert(4);
+        h.insert(6);
+        h.insert(12);
+        let t1 = h.insert(14);
+        h.remove(t1);
+        let mut check_set:HashMap<i32, bool> = HashMap::from([
+            (4,false),
+            (6,false),
+            (12,false),
+        ]);
+
+        for a in h.iter() {
+            
+            if let Some(v) = check_set.get_mut(a) {
+                *v = true;
+            }
+            else {
+                assert!(false)
+            }
+        }
+
+        for (_,v) in check_set {
+            assert!(v);
+        }
+
+    }
+
 }
